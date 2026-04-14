@@ -1,0 +1,86 @@
+package rules
+
+import com.aerolinea.airline.rules.model.Pasajero;
+import com.aerolinea.airline.rules.model.Vuelo;
+import com.aerolinea.airline.rules.model.Equipaje;
+import com.aerolinea.airline.rules.model.Asiento;
+
+rule "UpgradeToBusinessClassForFrequentFlyersWithDelays"
+when
+    $p : Pasajero((membership == "Gold" || membership == "Platinum") && eligibleForUpgrade == true)
+    Vuelo(delayMinutes > 60)
+then
+    $p.setTravelClass("Business");
+end
+
+rule "PriorityCheckInForSeniors"
+when
+    $p : Pasajero(age > 65)
+then
+    $p.setPriorityCheckIn(true);
+end
+
+rule "DiscountForLightLuggage"
+when
+    $p : Pasajero()
+    Equipaje(weight < 10)
+then
+    $p.setDiscount(10);
+end
+
+rule "DenyUpgradeForOverweightLuggage"
+when
+    $p : Pasajero()
+    Equipaje(weight > 23)
+then
+    $p.setEligibleForUpgrade(false);
+end
+
+rule "AssignEmergencyExitSeatToYoungAdults"
+when
+    $p : Pasajero(age >= 18 && age <= 40, seatPreference == "Any")
+    $s : Asiento(type == "EmergencyExit", available == true)
+then
+    $p.setSeatAssigned("Emergency Exit");
+    $s.setAvailable(false);
+end
+
+rule "CompensationForExtremeDelays"
+when
+    $p : Pasajero()
+    Vuelo(delayMinutes > 180)
+then
+    $p.setCompensation(200);
+end
+
+rule "ExtraLoyaltyPointsForLongFlights"
+when
+    $p : Pasajero(membership != "Basic")
+    Vuelo(durationHours > 5)
+then
+    $p.setLoyaltyPoints($p.getLoyaltyPoints() + 500);
+end
+
+rule "RestrictLuggageOnShortFlights"
+when
+    $l : Equipaje(weight > 15)
+    Vuelo(durationHours < 2)
+then
+    $l.setAllowed(false);
+end
+
+rule "VipLoungeAccessForPlatinumMembers"
+when
+    $p : Pasajero(membership == "Platinum")
+then
+    $p.setVipLoungeAccess(true);
+end
+
+rule "PreferentialSeatForFamilies"
+when
+    $p : Pasajero(travelingWithChildren == true, seatPreference == null || seatPreference == "")
+    $s : Asiento(type == "Family", available == true)
+then
+    $p.setSeatAssigned("Family Zone");
+    $s.setAvailable(false);
+end
